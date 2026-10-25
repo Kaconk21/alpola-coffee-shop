@@ -1,0 +1,19 @@
+{
+  "name": "BURGER MURNI - Kasir",
+  "short_name": "BURGER MURNI",
+  "description": "Aplikasi kasir dan laporan penjualan BURGER MURNI",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f5f4",
+  "theme_color": "#facc15",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "burger-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
