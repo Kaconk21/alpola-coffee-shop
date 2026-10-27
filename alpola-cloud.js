@@ -57,7 +57,9 @@
       menu: read('alpola_menu', Array.isArray(menu) ? menu : []),
       sales: read('alpola_sales', Array.isArray(sales) ? sales : []),
       expenses: read('alpola_expenses', Array.isArray(expenses) ? expenses : []),
-      pendingOrders: read('alpola_pending', Array.isArray(pendingOrders) ? pendingOrders : [])
+      pendingOrders: read('alpola_pending', Array.isArray(pendingOrders) ? pendingOrders : []),
+      businessProfile: read('alpola_business_profile', {}),
+      systemSettings: read('alpola_system_settings', {})
     };
   }
   function applySnapshot(data) {
@@ -73,6 +75,10 @@
       localStorage.setItem('alpola_sales', JSON.stringify(sales));
       localStorage.setItem('alpola_expenses', JSON.stringify(expenses));
       localStorage.setItem('alpola_pending', JSON.stringify(pendingOrders));
+      if (safe.businessProfile && typeof safe.businessProfile === 'object') localStorage.setItem('alpola_business_profile', JSON.stringify(safe.businessProfile));
+      if (safe.systemSettings && typeof safe.systemSettings === 'object') localStorage.setItem('alpola_system_settings', JSON.stringify(safe.systemSettings));
+      if (typeof loadBusinessProfile === 'function') loadBusinessProfile();
+      if (typeof loadSystemSettings === 'function') loadSystemSettings();
       if (typeof renderProducts === 'function') renderProducts();
       if (typeof renderCart === 'function') renderCart();
       if (typeof renderMenuTable === 'function') renderMenuTable();
@@ -229,7 +235,7 @@
   const originalSetItem = Storage.prototype.setItem;
   Storage.prototype.setItem = function(key, value) {
     originalSetItem.call(this, key, value);
-    if (this === window.localStorage && ['alpola_menu','alpola_sales','alpola_expenses','alpola_pending'].includes(String(key))) scheduleSync();
+    if (this === window.localStorage && ['alpola_menu','alpola_sales','alpola_expenses','alpola_pending','alpola_business_profile','alpola_system_settings'].includes(String(key))) scheduleSync();
   };
   client.auth.onAuthStateChange((event, session) => {
     if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && session.user) {
