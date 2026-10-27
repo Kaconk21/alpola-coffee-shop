@@ -4,7 +4,7 @@
   const SUPABASE_URL = 'https://qnuyyserbcieytqkjjhn.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_128aF9t0kyRjdPoGa5tMcg_QQIldJyo';
   const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storage: window.localStorage, storageKey: 'alpola-supabase-auth-v1' }
   });
   let activeUser = null, businessId = null, syncingRemote = false, syncTimer = null, connectedUserId = null;
 
@@ -217,6 +217,9 @@
     if (this === window.localStorage && ['alpola_menu','alpola_sales','alpola_expenses'].includes(String(key))) scheduleSync();
   };
   client.auth.onAuthStateChange((event, session) => {
+    if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && session.user) {
+      if (connectedUserId !== session.user.id) Promise.resolve().then(() => connectUser(session.user));
+    }
     if (event === 'SIGNED_OUT') {
       activeUser = null; businessId = null; connectedUserId = null;
       gate.style.display = 'flex';
