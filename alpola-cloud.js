@@ -223,7 +223,14 @@
           applySnapshot(stateRow.data);
         }
       }
+      // The business row is authoritative for identity fields; the snapshot may be older.
+      await loadBusinessRecord();
       connectedUserId = user.id;
+      const roleLabel = window.alpolaAuthContext && window.alpolaAuthContext.role === 'owner' ? 'Pemilik' : 'Kasir';
+      const roleEl = document.getElementById('currentRole');
+      const accountEl = document.getElementById('accountStatus');
+      if (roleEl) roleEl.textContent = roleLabel;
+      if (accountEl) accountEl.textContent = 'Terhubung';
       gate.style.display = 'none';
       document.querySelector('.app').style.visibility = 'visible';
       addAccountBar(user.email || 'Akun ALPOLA');
