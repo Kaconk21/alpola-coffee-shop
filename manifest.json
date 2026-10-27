@@ -1,7 +1,7 @@
 {
-  "name": "BURGER MURNI - Kasir",
-  "short_name": "BURGER MURNI",
-  "description": "Aplikasi kasir dan laporan penjualan BURGER MURNI",
+  "name": "ALPOLA COFFEE - Kasir",
+  "short_name": "ALPOLA",
+  "description": "Aplikasi kasir dan laporan penjualan ALPOLA COFFEE",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -10,7 +10,7 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "burger-icon.svg",
+      "src": "alpola-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
