@@ -36,6 +36,7 @@
     <div id="alpolaAuthMessage" role="status">Database online siap. Gunakan akun pribadi kamu.</div>
     <p style="font-size:11px;margin-bottom:0">Jangan bagikan kata sandi kepada siapa pun. Data akun dipisahkan berdasarkan akses pengguna.</p>
   </div>`;
+  gate.style.display = 'none';
   document.body.appendChild(gate);
 
   function message(text, bad = false) {
@@ -223,7 +224,12 @@
     }
   });
   client.auth.getSession().then(({ data, error }) => {
-    if (error) { message('Tidak dapat memeriksa sesi akun: ' + error.message, true); return; }
-    if (data.session && data.session.user) connectUser(data.session.user);
-  }).catch(err => message('Tidak dapat terhubung: ' + (err.message || 'koneksi bermasalah'), true));
+    if (error) { gate.style.display = 'flex'; message('Tidak dapat memeriksa sesi akun: ' + error.message, true); return; }
+    if (data.session && data.session.user) {
+      connectUser(data.session.user);
+    } else {
+      gate.style.display = 'flex';
+      document.querySelector('.app').style.visibility = 'hidden';
+    }
+  }).catch(err => { gate.style.display = 'flex'; message('Tidak dapat terhubung: ' + (err.message || 'koneksi bermasalah'), true); });
 })();
