@@ -140,7 +140,18 @@
         });
         if (insertError) throw insertError;
       } else {
-        applySnapshot(stateRow.data);
+        // If the cloud row exists but is still empty, preserve the current local starter data
+        // instead of replacing the default menu with empty arrays.
+        const localSnapshot = appSnapshot();
+        const localHasData = ['menu', 'sales', 'expenses'].some(key =>
+          Array.isArray(localSnapshot[key]) && localSnapshot[key].length > 0
+        );
+        if (localHasData) {
+          applySnapshot(localSnapshot);
+          await syncNow();
+        } else {
+          applySnapshot(stateRow.data);
+        }
       }
       connectedUserId = user.id;
       gate.style.display = 'none';
