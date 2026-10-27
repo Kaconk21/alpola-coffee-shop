@@ -24,6 +24,8 @@ const defaults=[{id:1,name:'Espresso',price:12000,emoji:'☕'},{id:2,name:'Ameri
 let menu=load('alpola_menu',defaults),sales=load('alpola_sales',[]),expenses=load('alpola_expenses',[]),cart={};
 function load(k,f){try{let v=JSON.parse(localStorage.getItem(k));return v??f}catch(e){return f}}
 function save(){localStorage.setItem('alpola_menu',JSON.stringify(menu));localStorage.setItem('alpola_sales',JSON.stringify(sales));localStorage.setItem('alpola_expenses',JSON.stringify(expenses))}
+menu=menu.map(p=>({...p,category:p.category||( /croissant|roti|pastry|sandwich/i.test(p.name)?'Makanan':/matcha|chocolate|lemon tea|air mineral/i.test(p.name)?'Non-kopi':'Kopi'),stock:p.stock===undefined?'':p.stock}));
+localStorage.setItem('alpola_menu',JSON.stringify(menu));
 function money(n){return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n||0)}
 function dateKey(d){let x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')}
 document.getElementById('today').textContent=new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
