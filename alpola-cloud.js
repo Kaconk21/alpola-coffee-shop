@@ -89,6 +89,18 @@
     } finally { syncingRemote = false; }
   }
   async function ensureBusiness(user) {
+    // Existing active membership takes precedence, so a cashier can join their owner's business.
+    const membership = await client.from('alpola_memberships')
+      .select('business_id,role,active').eq('user_id', user.id).eq('active', true).limit(1).maybeSingle();
+    if (membership.error) throw membership.error;
+    if (membership.data) {
+      const business = await client.from('alpola_businesses')
+        .select('id,name,owner_user_id').eq('id', membership.data.business_id).single();
+      if (business.error) throw business.error;
+      window.alpolaAuthContext = { userId: user.id, email: user.email || '', role: membership.data.role, businessId: business.data.id, businessName: business.data.name };
+      return business.data.id;
+    }
+
     let { data, error } = await client.from('alpola_businesses')
       .select('id,name,owner_user_id').eq('owner_user_id', user.id).limit(1).maybeSingle();
     if (error) throw error;
@@ -99,8 +111,15 @@
       if (created.error) throw created.error;
       data = created.data;
     }
+    // Only the database owner policy permits this membership insertion.
+    const ownerMembership = await client.from('alpola_memberships').upsert({
+      business_id: data.id, user_id: user.id, role: 'owner', active: true
+    }, { onConflict: 'business_id,user_id' });
+    if (ownerMembership.error) throw ownerMembership.error;
+    window.alpolaAuthContext = { userId: user.id, email: user.email || '', role: 'owner', businessId: data.id, businessName: data.name };
     return data.id;
   }
+
   async function syncNow() {
     if (!activeUser || !businessId || syncingRemote) return;
     const snapshot = appSnapshot();
