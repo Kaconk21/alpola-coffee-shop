@@ -56,7 +56,8 @@
     return {
       menu: read('alpola_menu', Array.isArray(menu) ? menu : []),
       sales: read('alpola_sales', Array.isArray(sales) ? sales : []),
-      expenses: read('alpola_expenses', Array.isArray(expenses) ? expenses : [])
+      expenses: read('alpola_expenses', Array.isArray(expenses) ? expenses : []),
+      pendingOrders: read('alpola_pending', Array.isArray(pendingOrders) ? pendingOrders : [])
     };
   }
   function applySnapshot(data) {
@@ -64,17 +65,20 @@
     const nextMenu = Array.isArray(safe.menu) ? safe.menu : (Array.isArray(menu) ? menu : []);
     const nextSales = Array.isArray(safe.sales) ? safe.sales : (Array.isArray(sales) ? sales : []);
     const nextExpenses = Array.isArray(safe.expenses) ? safe.expenses : (Array.isArray(expenses) ? expenses : []);
+    const nextPending = Array.isArray(safe.pendingOrders) ? safe.pendingOrders : (Array.isArray(pendingOrders) ? pendingOrders : []);
     syncingRemote = true;
     try {
-      menu = nextMenu; sales = nextSales; expenses = nextExpenses;
+      menu = nextMenu; sales = nextSales; expenses = nextExpenses; pendingOrders = nextPending;
       localStorage.setItem('alpola_menu', JSON.stringify(menu));
       localStorage.setItem('alpola_sales', JSON.stringify(sales));
       localStorage.setItem('alpola_expenses', JSON.stringify(expenses));
+      localStorage.setItem('alpola_pending', JSON.stringify(pendingOrders));
       if (typeof renderProducts === 'function') renderProducts();
       if (typeof renderCart === 'function') renderCart();
       if (typeof renderMenuTable === 'function') renderMenuTable();
       if (typeof renderReports === 'function') renderReports();
       if (typeof renderExpenses === 'function') renderExpenses();
+      if (typeof renderPendingOrders === 'function') renderPendingOrders();
       if (typeof renderDashboard === 'function') renderDashboard();
     } finally { syncingRemote = false; }
   }
@@ -225,7 +229,7 @@
   const originalSetItem = Storage.prototype.setItem;
   Storage.prototype.setItem = function(key, value) {
     originalSetItem.call(this, key, value);
-    if (this === window.localStorage && ['alpola_menu','alpola_sales','alpola_expenses'].includes(String(key))) scheduleSync();
+    if (this === window.localStorage && ['alpola_menu','alpola_sales','alpola_expenses','alpola_pending'].includes(String(key))) scheduleSync();
   };
   client.auth.onAuthStateChange((event, session) => {
     if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && session.user) {
