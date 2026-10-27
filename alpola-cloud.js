@@ -120,6 +120,46 @@
     return data.id;
   }
 
+  window.alpolaSaveBusinessProfile = async function(profile) {
+    if (!activeUser || !businessId) throw new Error('Akun belum terhubung ke usaha.');
+    if (!window.alpolaAuthContext || window.alpolaAuthContext.role !== 'owner') {
+      throw new Error('Hanya pemilik usaha yang boleh mengubah profil usaha.');
+    }
+    const row = {
+      name: String(profile.name || '').trim() || 'ALPOLA Coffee Shop',
+      owner_name: String(profile.owner || '').trim(),
+      phone: String(profile.phone || '').trim(),
+      address: String(profile.address || '').trim(),
+      note: String(profile.note || '').trim(),
+      updated_at: new Date().toISOString()
+    };
+    const { error } = await client.from('alpola_businesses').update(row).eq('id', businessId);
+    if (error) throw error;
+    window.alpolaAuthContext.businessName = row.name;
+    const bar = document.getElementById('alpolaBusinessName');
+    if (bar) bar.textContent = row.name;
+    return true;
+  };
+
+  async function loadBusinessRecord() {
+    if (!businessId) return;
+    const { data, error } = await client.from('alpola_businesses')
+      .select('name,owner_name,phone,address,note').eq('id', businessId).single();
+    if (error) throw error;
+    const profile = {
+      name: data.name || 'ALPOLA Coffee Shop',
+      owner: data.owner_name || '',
+      phone: data.phone || '',
+      address: data.address || '',
+      note: data.note || ''
+    };
+    syncingRemote = true;
+    try { localStorage.setItem('alpola_business_profile', JSON.stringify(profile)); }
+    finally { syncingRemote = false; }
+    if (typeof loadBusinessProfile === 'function') loadBusinessProfile();
+    window.alpolaAuthContext.businessName = profile.name;
+  }
+
   async function syncNow() {
     if (!activeUser || !businessId || syncingRemote) return;
     const snapshot = appSnapshot();
@@ -154,6 +194,7 @@
     message('Menghubungkan akun dan memuat data…');
     try {
       businessId = await ensureBusiness(user);
+      await loadBusinessRecord();
       const { data: stateRow, error } = await client.from('alpola_app_state')
         .select('data,updated_at').eq('business_id', businessId).maybeSingle();
       if (error) throw error;
