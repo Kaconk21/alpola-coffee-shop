@@ -61,7 +61,7 @@ function renderReports(){let f=document.getElementById('filterDate').value;let l
 
 function printSale(id){
  const s=sales.find(x=>x.id===id); if(!s)return alert('Transaksi tidak ditemukan.');
- const safeText=value=>String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+ const safeText=value=>String(value??'');
  const entries=[];
  const add=(content,{bold=0,align=0,format=0}={})=>entries.push({type:0,content:String(content),bold,align,format});
  add('ALPOLA COFFEE SHOP',{bold:1,align:1});
