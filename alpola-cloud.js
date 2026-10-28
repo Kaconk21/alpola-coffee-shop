@@ -203,18 +203,28 @@
 
   async function syncNow() {
     if (!activeUser || !businessId || syncingRemote) return;
-    const snapshot = appSnapshot();
-    const { error } = await client.from('alpola_app_state').upsert({
-      business_id: businessId,
-      data: snapshot,
-      updated_by: activeUser.id,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'business_id' });
-    if (error) {
-      console.error('ALPOLA cloud sync failed:', error);
-      const state = document.getElementById('alpolaCloudState');
-      if (state) { state.textContent = 'Belum tersinkron'; state.style.color = '#b42318'; }
-      return;
+    const role = window.alpolaAuthContext && window.alpolaAuthContext.role;
+    if (role === 'cashier') {
+      const snapshot = appSnapshot();
+      const salesToSubmit = Array.isArray(snapshot.sales) ? snapshot.sales : [];
+      if (salesToSubmit.length) {
+        const { error } = await client.rpc('alpola_cashier_submit_sales', {
+          p_business_id: businessId, p_sales: salesToSubmit
+        });
+        if (error) throw error;
+        syncingRemote = true;
+        try {
+          sales = [];
+          localStorage.setItem('alpola_sales', '[]');
+        } finally { syncingRemote = false; }
+      }
+    } else {
+      const snapshot = appSnapshot();
+      const { error } = await client.from('alpola_app_state').upsert({
+        business_id: businessId, data: snapshot, updated_by: activeUser.id,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'business_id' });
+      if (error) throw error;
     }
     const state = document.getElementById('alpolaCloudState');
     if (state) { state.textContent = 'Tersimpan online'; state.style.color = '#075e54'; }
@@ -236,36 +246,40 @@
     try {
       businessId = await ensureBusiness(user);
       await loadBusinessRecord();
-      const { data: stateRow, error } = await client.from('alpola_app_state')
-        .select('data,updated_at').eq('business_id', businessId).maybeSingle();
-      if (error) throw error;
-      if (stateRow && stateRow.data && (
-        (Array.isArray(stateRow.data.menu) && stateRow.data.menu.length) ||
-        (Array.isArray(stateRow.data.sales) && stateRow.data.sales.length) ||
-        (Array.isArray(stateRow.data.expenses) && stateRow.data.expenses.length)
-      )) {
-        applySnapshot(stateRow.data);
-      } else if (!stateRow) {
-        const { error: insertError } = await client.from('alpola_app_state').insert({
-          business_id: businessId, data: appSnapshot(), updated_by: user.id
-        });
-        if (insertError) throw insertError;
+      const role = window.alpolaAuthContext && window.alpolaAuthContext.role;
+      let stateRow = null;
+      if (role === 'cashier') {
+        const { data, error } = await client.rpc('alpola_cashier_get_state', { p_business_id: businessId });
+        if (error) throw error;
+        stateRow = { data, updated_at: null };
+        applySnapshot(data || {});
       } else {
-        // If the cloud row exists but is still empty, preserve the current local starter data
-        // instead of replacing the default menu with empty arrays.
-        const localSnapshot = appSnapshot();
-        const localHasData = ['menu', 'sales', 'expenses'].some(key =>
-          Array.isArray(localSnapshot[key]) && localSnapshot[key].length > 0
-        );
-        if (localHasData) {
-          applySnapshot(localSnapshot);
-          await syncNow();
-        } else {
+        const { data, error } = await client.from('alpola_app_state')
+          .select('data,updated_at').eq('business_id', businessId).maybeSingle();
+        if (error) throw error;
+        stateRow = data;
+        if (stateRow && stateRow.data && (
+          (Array.isArray(stateRow.data.menu) && stateRow.data.menu.length) ||
+          (Array.isArray(stateRow.data.sales) && stateRow.data.sales.length) ||
+          (Array.isArray(stateRow.data.expenses) && stateRow.data.expenses.length)
+        )) {
           applySnapshot(stateRow.data);
+        } else if (!stateRow) {
+          const { error: insertError } = await client.from('alpola_app_state').insert({
+            business_id: businessId, data: appSnapshot(), updated_by: user.id
+          });
+          if (insertError) throw insertError;
+        } else {
+          const localSnapshot = appSnapshot();
+          const localHasData = ['menu', 'sales', 'expenses'].some(key =>
+            Array.isArray(localSnapshot[key]) && localSnapshot[key].length > 0
+          );
+          if (localHasData) { applySnapshot(localSnapshot); await syncNow(); }
+          else applySnapshot(stateRow.data);
         }
       }
-      // The business row is authoritative for identity fields; the snapshot may be older.
       await loadBusinessRecord();
+      applyRoleAccess(role);
       connectedUserId = user.id;
       const roleLabel = window.alpolaAuthContext && window.alpolaAuthContext.role === 'owner' ? 'Pemilik' : 'Kasir';
       const roleEl = document.getElementById('currentRole');
@@ -286,6 +300,27 @@
       message('Belum berhasil menghubungkan database: ' + (err.message || 'periksa konfigurasi Supabase'), true);
     }
   }
+  function applyRoleAccess(role) {
+    const ownerOnly = new Set(['dashboard','laporan','menu','keuangan','profil-usaha','pengguna','pengaturan']);
+    document.querySelectorAll('[data-page]').forEach(button => {
+      const page = button.dataset.page;
+      button.hidden = role !== 'owner' && ownerOnly.has(page);
+    });
+    if (role !== 'owner') {
+      const title = document.getElementById('title');
+      if (title) title.textContent = 'Kasir';
+      document.querySelectorAll('[id^="page-"]').forEach(section => {
+        section.classList.toggle('hidden', section.id !== 'page-kasir');
+      });
+      document.querySelectorAll('[id^="page-"]').forEach(section => {
+        if (section.id !== 'page-kasir') section.setAttribute('aria-hidden','true');
+        else section.removeAttribute('aria-hidden');
+      });
+    } else {
+      document.querySelectorAll('[id^="page-"]').forEach(section => section.removeAttribute('aria-hidden'));
+    }
+  }
+
   function addAccountBar(email) {
     let bar = document.getElementById('alpolaAccountBar');
     if (!bar) {
