@@ -61,10 +61,39 @@ function renderReports(){let f=document.getElementById('filterDate').value;let l
 
 function printSale(id){
  const s=sales.find(x=>x.id===id); if(!s)return alert('Transaksi tidak ditemukan.');
- const lines=s.items.map(i=>'<div class="line"><span>'+esc(i.name)+' × '+i.qty+'</span><span>'+money(i.price*i.qty)+'</span></div>').join('');
- const win=window.open('','_blank','width=420,height=700'); if(!win)return alert('Izinkan pop-up agar struk dapat dicetak.');
- win.document.write('<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Struk ALPOLA</title><style>@page{size:80mm auto;margin:3mm}*{box-sizing:border-box}body{font:12px monospace;color:#111;width:72mm;margin:0 auto}.center{text-align:center}.brand{font-size:18px;font-weight:bold;letter-spacing:.5px}.rule{border-top:1px dashed #111;margin:8px 0}.line{display:flex;justify-content:space-between;gap:8px;margin:5px 0}.line span:first-child{max-width:45mm;overflow-wrap:anywhere}.total{font-size:14px;font-weight:bold}.small{font-size:10px}</style></head><body><div class="center"><div class="brand">ALPOLA COFFEE SHOP</div><div>Terima kasih telah berbelanja</div></div><div class="rule"></div><div>No: '+s.id+'</div><div>'+new Date(s.date).toLocaleString('id-ID')+'</div><div class="rule"></div>'+lines+'<div class="rule"></div><div class="line"><span>Subtotal</span><span>'+money(s.subtotal)+'</span></div><div class="line"><span>Diskon</span><span>- '+money(s.discount)+'</span></div><div class="line total"><span>TOTAL</span><span>'+money(s.total)+'</span></div><div class="line"><span>Metode</span><span>'+esc(s.payment)+'</span></div>'+(s.payment==='Tunai'?'<div class="line"><span>Diterima</span><span>'+money(s.cash)+'</span></div><div class="line"><span>Kembalian</span><span>'+money(s.change)+'</span></div>':'')+'<div class="rule"></div><div class="center small">Simpan struk ini sebagai bukti transaksi</div><script>window.onload=()=>setTimeout(()=>window.print(),250);window.onafterprint=()=>window.close();<\/script></body></html>');
- win.document.close();
+ const safeText=value=>String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+ const entries=[];
+ const add=(content,{bold=0,align=0,format=0}={})=>entries.push({type:0,content:String(content),bold,align,format});
+ add('ALPOLA COFFEE SHOP',{bold:1,align:1});
+ add('Terima kasih telah berbelanja',{align:1});
+ add('--------------------------------');
+ add('No: '+s.id);
+ add(new Date(s.date).toLocaleString('id-ID'));
+ add('--------------------------------');
+ s.items.forEach(i=>{
+  add(safeText(i.name)+' x'+i.qty);
+  add('  '+money((Number(i.price)||0)*(Number(i.qty)||0)));
+ });
+ add('--------------------------------');
+ add('Subtotal: '+money(s.subtotal));
+ add('Diskon: -'+money(s.discount));
+ add('TOTAL: '+money(s.total),{bold:1});
+ add('Metode: '+safeText(s.payment));
+ if(s.payment==='Tunai'){
+  add('Diterima: '+money(s.cash));
+  add('Kembalian: '+money(s.change));
+ }
+ add('--------------------------------');
+ add('Simpan struk ini sebagai bukti transaksi',{align:1});
+ add(' ');
+ const endpoint='https://qnuyyserbcieytqkjjhn.supabase.co/functions/v1/bluetooth-print';
+ const responseUrl=endpoint+'?payload='+encodeURIComponent(JSON.stringify(entries));
+ const appUrl='my.bluetoothprint.scheme://'+responseUrl;
+ try{
+  window.location.href=appUrl;
+ }catch(err){
+  alert('Tidak dapat membuka Bluetooth Print. Pastikan aplikasi terpasang dan Browser Print aktif.');
+ }
 }
 
 function exportBackup(){const data={app:'ALPOLA Coffee Shop',version:3,createdAt:new Date().toISOString(),menu,sales,expenses,pendingOrders};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='cadangan-alpola-'+dateKey(new Date())+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);alert('File cadangan ALPOLA berhasil disiapkan. Pastikan file tersimpan di perangkat.')}
