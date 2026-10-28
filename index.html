@@ -90,7 +90,7 @@ function printSale(id){
  const responseUrl=endpoint+'?payload='+encodeURIComponent(JSON.stringify(entries));
  const appUrl='my.bluetoothprint.scheme://'+responseUrl;
  try{
-  window.location.href=appUrl;
+  window.top.location.href=appUrl;
  }catch(err){
   alert('Tidak dapat membuka Bluetooth Print. Pastikan aplikasi terpasang dan Browser Print aktif.');
  }
