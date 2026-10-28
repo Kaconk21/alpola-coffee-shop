@@ -59,7 +59,7 @@ function checkout(){if(checkoutBusy)return;checkoutBusy=true;const btn=document.
 function renderDashboard(){let today=dateKey(new Date()),ss=sales.filter(s=>dateKey(s.date)===today),rev=ss.reduce((a,s)=>a+s.total,0),profit=ss.reduce((a,s)=>a+s.items.reduce((v,i)=>v+((Number(i.price)||0)-(Number(i.cost)||0))*(Number(i.qty)||0),0)-s.discount,0),expenseToday=expenses.filter(e=>e.date===today).reduce((a,e)=>a+Number(e.amount||0),0),popular={};ss.forEach(s=>s.items.forEach(i=>popular[i.name]=(popular[i.name]||0)+i.qty));let best=Object.entries(popular).sort((a,b)=>b[1]-a[1])[0];document.getElementById('dRevenue').textContent=money(rev);document.getElementById('dCount').textContent=ss.length;document.getElementById('dBest').textContent=best?best[0]:'—';document.getElementById('dProfit').textContent=money(profit);document.getElementById('dExpense').textContent=money(expenseToday);document.getElementById('dNetProfit').textContent=money(profit-expenseToday);let days=Array.from({length:7},(_,i)=>{let d=new Date();d.setDate(d.getDate()-(6-i));let k=dateKey(d);return{label:d.toLocaleDateString('id-ID',{day:'numeric',month:'short'}),sum:sales.filter(s=>dateKey(s.date)===k).reduce((a,s)=>a+s.total,0)}}),max=Math.max(1,...days.map(d=>d.sum));document.getElementById('chart').innerHTML='<div style="display:flex;align-items:end;gap:10px;height:180px;padding-top:15px">'+days.map(d=>'<div style="flex:1;text-align:center;min-width:0"><div title="'+money(d.sum)+'" style="background:#b9e7df;border-radius:7px 7px 0 0;height:'+Math.max(4,d.sum/max*125)+'px"></div><div style="font-size:11px;margin-top:8px">'+d.label+'</div><div style="font-size:10px;color:#737373;overflow-wrap:anywhere">'+(d.sum?Math.round(d.sum/1000)+'k':'—')+'</div></div>').join('')+'</div>'}
 function renderReports(){let f=document.getElementById('filterDate').value;let list=sales.filter(s=>!f||dateKey(s.date)===f);const revenue=list.reduce((a,s)=>a+(Number(s.total)||0),0),profit=list.reduce((a,s)=>a+s.items.reduce((v,i)=>v+((Number(i.price)||0)-(Number(i.cost)||0))*(Number(i.qty)||0),0)-(Number(s.discount)||0),0);document.getElementById('rRevenue').textContent=money(revenue);document.getElementById('rCount').textContent=String(list.length);document.getElementById('rProfit').textContent=money(profit);document.getElementById('rAverage').textContent=money(list.length?revenue/list.length:0);document.getElementById('reports').innerHTML=list.length?list.map(s=>{const saleProfit=s.items.reduce((a,i)=>a+((Number(i.price)||0)-(Number(i.cost)||0))*(Number(i.qty)||0),0)-(Number(s.discount)||0);return '<tr><td>'+new Date(s.date).toLocaleString('id-ID')+'</td><td>'+s.items.map(i=>esc(i.name)+' × '+i.qty).join(', ')+'</td><td>'+money(s.total)+'</td><td><b>'+money(saleProfit)+'</b></td><td>'+money(s.cash)+'</td><td>'+esc(s.payment)+'</td><td><button class="receipt-btn" onclick="printSale('+s.id+')">Cetak</button></td></tr>'}).join(''):'<tr><td colspan="7" class="empty">Belum ada transaksi.</td></tr>'}
 
-function printSale(id){
+async function printSale(id){
  const s=sales.find(x=>x.id===id); if(!s)return alert('Transaksi tidak ditemukan.');
  const safeText=value=>String(value??'');
  const entries=[];
@@ -86,13 +86,31 @@ function printSale(id){
  add('--------------------------------');
  add('Simpan struk ini sebagai bukti transaksi',{align:1});
  add(' ');
- const endpoint='https://qnuyyserbcieytqkjjhn.supabase.co/functions/v1/bluetooth-print';
- const responseUrl=endpoint+'?payload='+encodeURIComponent(JSON.stringify(entries));
- const appUrl='my.bluetoothprint.scheme://'+responseUrl;
+ const receipt={
+  cut:true,
+  content:entries.map(entry=>({
+   type:'text',
+   text:entry.content,
+   bold:entry.bold===1,
+   align:entry.align===1?'center':entry.align===2?'right':'left'
+  }))
+ };
  try{
-  window.top.location.href=appUrl;
+  const response=await fetch('http://localhost:9100/print',{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify(receipt)
+  });
+  let result={};
+  try{result=await response.json();}catch(_){}
+  if(!response.ok){
+   const reason=result.fix||result.error||result.message||('HTTP '+response.status);
+   throw new Error(reason);
+  }
+  alert('Perintah cetak berhasil dikirim ke Cleanter. Job: '+(result.jobId||'OK'));
  }catch(err){
-  alert('Tidak dapat membuka Bluetooth Print. Pastikan aplikasi terpasang dan Browser Print aktif.');
+  console.error('ALPOLA Cleanter print error:',err);
+  alert('Gagal mengirim struk ke printer. Pastikan Cleanter sedang aktif, printer default sudah dipilih, dan server Cleanter berjalan. Detail: '+(err&&err.message?err.message:'koneksi localhost:9100 gagal'));
  }
 }
 
