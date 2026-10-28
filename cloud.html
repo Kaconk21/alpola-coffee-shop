@@ -6,12 +6,13 @@
 <meta name="theme-color" content="#b9e7df">
 <title>ALPOLA Coffee Shop — Online</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f5f5f4}iframe{display:block;width:100%;height:100%;height:100dvh;border:0}#boot{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:#f5f5f4;font:14px system-ui;color:#171717;text-align:center;padding:24px}#boot p{color:#666;font-size:12px}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f5f5f4}iframe{display:block;width:100%;height:100%;height:100dvh;border:0}#refreshBtn{position:fixed;right:12px;top:12px;z-index:20;border:0;border-radius:999px;background:#171717;color:#fff;padding:10px 14px;font:600 13px system-ui;box-shadow:0 2px 8px #0003}#boot{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:#f5f5f4;font:14px system-ui;color:#171717;text-align:center;padding:24px}#boot p{color:#666;font-size:12px}
 </style>
 </head>
 <body>
 <div id="boot"><div><strong>ALPOLA COFFEE SHOP</strong><p>Menyiapkan koneksi database online…</p></div></div>
 <iframe id="appFrame" title="ALPOLA Coffee Shop POS" src="./index.html"></iframe>
+<button id="refreshBtn" type="button" onclick="window.location.reload()">↻ Muat ulang</button>
 <script>
 (function(){
  const frame=document.getElementById('appFrame');
@@ -23,23 +24,22 @@
    if(doc && !doc.documentElement.dataset.pullRefreshReady){
     doc.documentElement.dataset.pullRefreshReady='1';
     let touchStartY=0, touchStartX=0, canPull=false;
+    const atTop=()=>Math.max(doc.documentElement.scrollTop||0,doc.body.scrollTop||0,doc.scrollingElement?doc.scrollingElement.scrollTop:0)<=2;
     doc.addEventListener('touchstart',function(event){
      if(!event.touches||event.touches.length!==1)return;
      const target=event.target;
      if(target && target.closest && target.closest('input,textarea,select,[contenteditable="true"]')){canPull=false;return;}
      touchStartY=event.touches[0].clientY;
      touchStartX=event.touches[0].clientX;
-     canPull=(doc.documentElement.scrollTop<=0 && doc.body.scrollTop<=0);
+     canPull=atTop();
     },{passive:true});
     doc.addEventListener('touchend',function(event){
      if(!canPull||!event.changedTouches||!event.changedTouches.length)return;
      const dy=event.changedTouches[0].clientY-touchStartY;
      const dx=event.changedTouches[0].clientX-touchStartX;
      canPull=false;
-     if(dy>120 && Math.abs(dx)<80 && doc.documentElement.scrollTop<=0 && doc.body.scrollTop<=0){
-      boot.style.display='grid';
-      boot.innerHTML='<div><strong>ALPOLA COFFEE SHOP</strong><p>Menyegarkan halaman dan koneksi database…</p></div>';
-      window.location.reload();
+     if(dy>75 && Math.abs(dx)<70 && atTop()){
+      window.parent.location.reload();
      }
     },{passive:true});
    }
