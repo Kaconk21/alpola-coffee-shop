@@ -245,8 +245,8 @@
     message('Menghubungkan akun dan memuat data…');
     try {
       businessId = await ensureBusiness(user);
-      await loadBusinessRecord();
       const role = window.alpolaAuthContext && window.alpolaAuthContext.role;
+      if (role === 'owner') await loadBusinessRecord();
       let stateRow = null;
       if (role === 'cashier') {
         const { data, error } = await client.rpc('alpola_cashier_get_state', { p_business_id: businessId });
@@ -278,7 +278,7 @@
           else applySnapshot(stateRow.data);
         }
       }
-      await loadBusinessRecord();
+      if (role === 'owner') await loadBusinessRecord();
       applyRoleAccess(role);
       connectedUserId = user.id;
       const roleLabel = window.alpolaAuthContext && window.alpolaAuthContext.role === 'owner' ? 'Pemilik' : 'Kasir';
