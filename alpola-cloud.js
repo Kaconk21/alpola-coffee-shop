@@ -17,7 +17,7 @@
     #alpolaAuthGate input{width:100%;padding:13px;border:1px solid #ddd;border-radius:11px;font:inherit}
     #alpolaAuthGate .auth-actions{display:flex;gap:8px;margin-top:16px}#alpolaAuthGate button{flex:1}
     #alpolaAuthMessage{font-size:13px;white-space:pre-wrap;margin-top:12px;color:#075e54}
-    #alpolaAccountBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px}
+    #alpolaAccountBar{position:fixed;top:10px;right:10px;z-index:99998;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:8px 10px;box-shadow:0 6px 24px #0002;max-width:calc(100vw - 20px)}
     #alpolaCloudState{color:#075e54;font-weight:700}#alpolaSignOut{padding:8px 10px;background:#eee;color:#222;font-size:12px}
     @media(max-width:520px){#alpolaAuthGate .auth-card{padding:20px}}
   `;
