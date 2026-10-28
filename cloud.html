@@ -18,6 +18,32 @@
  const boot=document.getElementById('boot');
  let started=false;
  frame.addEventListener('load',function(){
+  try{
+   const doc=frame.contentDocument;
+   if(doc && !doc.documentElement.dataset.pullRefreshReady){
+    doc.documentElement.dataset.pullRefreshReady='1';
+    let touchStartY=0, touchStartX=0, canPull=false;
+    doc.addEventListener('touchstart',function(event){
+     if(!event.touches||event.touches.length!==1)return;
+     const target=event.target;
+     if(target && target.closest && target.closest('input,textarea,select,[contenteditable="true"]')){canPull=false;return;}
+     touchStartY=event.touches[0].clientY;
+     touchStartX=event.touches[0].clientX;
+     canPull=(doc.documentElement.scrollTop<=0 && doc.body.scrollTop<=0);
+    },{passive:true});
+    doc.addEventListener('touchend',function(event){
+     if(!canPull||!event.changedTouches||!event.changedTouches.length)return;
+     const dy=event.changedTouches[0].clientY-touchStartY;
+     const dx=event.changedTouches[0].clientX-touchStartX;
+     canPull=false;
+     if(dy>120 && Math.abs(dx)<80 && doc.documentElement.scrollTop<=0 && doc.body.scrollTop<=0){
+      boot.style.display='grid';
+      boot.innerHTML='<div><strong>ALPOLA COFFEE SHOP</strong><p>Menyegarkan halaman dan koneksi database…</p></div>';
+      window.location.reload();
+     }
+    },{passive:true});
+   }
+  }catch(err){}
   if(started)return;started=true;
   try{
    const doc=frame.contentDocument;
