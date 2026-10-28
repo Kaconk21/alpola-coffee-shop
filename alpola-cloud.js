@@ -120,6 +120,47 @@
     return data.id;
   }
 
+  window.alpolaListMembers = async function() {
+    if (!activeUser || !businessId || !window.alpolaAuthContext || window.alpolaAuthContext.role !== 'owner') {
+      throw new Error('Hanya pemilik yang boleh melihat akun anggota.');
+    }
+    const { data, error } = await client.from('alpola_memberships')
+      .select('user_id,role,active,created_at').eq('business_id', businessId).order('created_at', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  };
+
+  window.alpolaAddCashier = async function(userId) {
+    if (!activeUser || !businessId || !window.alpolaAuthContext || window.alpolaAuthContext.role !== 'owner') {
+      throw new Error('Hanya pemilik yang boleh menambahkan kasir.');
+    }
+    const id = String(userId || '').trim();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+      throw new Error('Masukkan User ID (UUID) akun yang sudah terdaftar.');
+    }
+    if (id.toLowerCase() === String(activeUser.id).toLowerCase()) {
+      throw new Error('Akun pemilik tidak dapat ditambahkan sebagai kasir.');
+    }
+    const { error } = await client.from('alpola_memberships').upsert({
+      business_id: businessId, user_id: id, role: 'cashier', active: true
+    }, { onConflict: 'business_id,user_id' });
+    if (error) throw error;
+    return true;
+  };
+
+  window.alpolaSetCashierActive = async function(userId, active) {
+    if (!activeUser || !businessId || !window.alpolaAuthContext || window.alpolaAuthContext.role !== 'owner') {
+      throw new Error('Hanya pemilik yang boleh mengubah status kasir.');
+    }
+    const id = String(userId || '').trim();
+    const { data, error } = await client.from('alpola_memberships')
+      .update({ active: !!active }).eq('business_id', businessId).eq('user_id', id).eq('role', 'cashier')
+      .select('user_id').maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error('Akun kasir tidak ditemukan atau tidak dapat diubah.');
+    return true;
+  };
+
   window.alpolaSaveBusinessProfile = async function(profile) {
     if (!activeUser || !businessId) throw new Error('Akun belum terhubung ke usaha.');
     if (!window.alpolaAuthContext || window.alpolaAuthContext.role !== 'owner') {
